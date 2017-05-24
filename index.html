@@ -127,12 +127,12 @@
 		
 			window.jsondata = {};
 			updateData = function() {
-				$.getJSON('https://api.coinmarketcap.com/v1/ticker/?convert=BRL&limit=15', function(data) {
+				$.getJSON('https://api.coinmarketcap.com/v1/ticker/?convert=BRL&limit=15&token='+Math.random(), function(data) {
 					window.jsondata = data;
 				});
 			};
 			updateData();
-			setInterval(updateData(), 5*60*1000);
+			setInterval(updateData, 1000*60);
 			var coins = ['BTC', 'ETH', 'DASH', 'XMR'];
 			
 			window.myLine.update();
