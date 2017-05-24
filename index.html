@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>Cryptocharts</title>
+		<!-- Latest compiled and minified CSS -->
+		<link href="https://maxcdn.bootstrapcdn.com/bootswatch/3.3.7/cyborg/bootstrap.min.css" rel="stylesheet" integrity="sha384-D9XILkoivXN+bcvB2kSOowkIvIcBbNdoDQvfBNsxYAIieZbx8/SI4NeUvrRGCpDi" crossorigin="anonymous">
+		<!-- Optional theme -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+		<style type="text/css">
+			div {
+				font-size: 36px;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container-fluid">
+			<div class="row">
+			  <div class="col-lg-12">
+				<div class="page-header">
+				  <h1 id="coinname"></h1>
+				</div>
+			  </div>
+			</div>
+			<div class="row">
+				<div class="col-md-4">
+					<div class="panel panel-danger">
+					  <div class="panel-heading">
+						<h3 class="panel-title">USD</h3>
+					  </div>
+					  <div class="panel-body" id="inusd">
+						
+					  </div>
+					</div>
+					
+					<div class="panel panel-success">
+					  <div class="panel-heading">
+						<h3 class="panel-title">BRL</h3>
+					  </div>
+					  <div class="panel-body" id="inbrl">
+						
+					  </div>
+					</div>
+				</div>
+				<div class="col-md-8">
+					<canvas id="canvas"></canvas>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-4">
+					<div class="panel panel-default">
+					  <div class="panel-body" id="c1h">
+						
+					  </div>
+					  <div class="panel-footer">% changes 1h</div>
+					</div>
+				</div>
+				<div class="col-md-4">
+					<div class="panel panel-default">
+					  <div class="panel-body" id="c24h">
+						
+					  </div>
+					  <div class="panel-footer">% changes 24h</div>
+					</div>
+				</div>
+				<div class="col-md-4">
+					<div class="panel panel-default">
+					  <div class="panel-body" id="c7d">
+						
+					  </div>
+					  <div class="panel-footer">% changes 7d</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script
+		  src="https://code.jquery.com/jquery-1.12.4.min.js"
+		  integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ="
+		  crossorigin="anonymous"></script>
+		  
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.bundle.min.js"></script>
+		
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+		<script type="text/javascript">
+		
+			var config = {
+				type: 'line',
+				data: {
+					labels: [],
+					datasets: []
+				},
+				options: {
+					responsive: true,
+					title:{
+						display:false
+					},
+					tooltips: {
+						mode: 'index',
+						intersect: false,
+					},
+					hover: {
+						mode: 'nearest',
+						intersect: true
+					},
+					scales: {
+						xAxes: [{
+							display: true,
+							scaleLabel: {
+								display: true,
+								labelString: ''
+							}
+						}],
+						yAxes: [{
+							display: true,
+							scaleLabel: {
+								display: true,
+								labelString: 'Value'
+							}
+						}]
+					}
+				}
+			};
+			
+			var ctx = document.getElementById("canvas").getContext("2d");
+            window.myLine = new Chart(ctx, config);
+		
+			window.jsondata = {};
+			updateData = function() {
+				$.getJSON('https://api.coinmarketcap.com/v1/ticker/?convert=BRL&limit=15', function(data) {
+					window.jsondata = data;
+				});
+			};
+			updateData();
+			setInterval(updateData(), 5*60*1000);
+			var coins = ['BTC', 'ETH', 'DASH', 'XMR'];
+			
+			window.myLine.update();
+			
+			var current = -1;
+			var maxcoins = coins.length-1;
+			
+			function getRandomColor() {
+				var letters = '0123456789ABCDEF';
+				var color = '#';
+				for (var i = 0; i < 6; i++ ) {
+					color += letters[Math.floor(Math.random() * 16)];
+				}
+				return color;
+			}
+			
+			for(i = 0; i <= maxcoins; i++) {
+				var newDataset = {
+					label: coins[i],
+					borderColor: getRandomColor(),
+					data: [],
+					fill: false
+				};
+				config.data.datasets.push(newDataset);
+				window.myLine.update();
+			}
+			
+			var mainloop = function() {
+				if(current>maxcoins) current = 0;
+				else current++;
+				var now_coin = coins[current];
+				
+				// search and gather
+				if(window.jsondata.length) {
+					$(window.jsondata).each(function(key, value) {
+						if(value.symbol==now_coin) {
+							$("#coinname").text(value.name);
+							$("#inusd").text(value.price_usd);
+							$("#inbrl").text(value.price_brl);
+							$("#c1h").text(value.percent_change_1h);
+							$("#c24h").text(value.percent_change_24h);
+							$("#c7d").text(value.percent_change_7d);
+							config.data.datasets.forEach(function(dataset) {
+								if(dataset.label==now_coin) {
+									dataset.data.push(value.price_usd);
+									window.myLine.update();
+								}
+							});
+						}
+					});
+				}
+			};
+			setInterval(mainloop, 10000);
+			mainloop();
+		</script>
+	</body>
+</html>
