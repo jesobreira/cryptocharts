@@ -35,7 +35,7 @@
 					
 					<div class="panel panel-success">
 					  <div class="panel-heading">
-						<h3 class="panel-title">BRL</h3>
+						<h3 class="panel-title" id="locallabel"></h3>
 					  </div>
 					  <div class="panel-body" id="inbrl">
 						
@@ -83,6 +83,13 @@
 		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
 
 		<script type="text/javascript">
+
+		/* configure here */
+			coins = ['BTC', 'ETH', 'DASH', 'XMR'];
+			localcoin = 'BRL';
+		/* end configure */
+
+			$("#locallabel").text(localcoin);
 		
 			var config = {
 				type: 'line',
@@ -124,16 +131,38 @@
 			
 			var ctx = document.getElementById("canvas").getContext("2d");
             window.myLine = new Chart(ctx, config);
+
+            Number.prototype.padLeft = function (len,chr) {
+			 var self = Math.abs(this)+'';
+			 return (this<0 && '-' || '')+
+			         (String(Math.pow( 10, (len || 2)-self.length))
+			           .slice(1).replace(/0/g,chr||'0') + self);
+			}
 		
 			window.jsondata = {};
 			updateData = function() {
-				$.getJSON('https://api.coinmarketcap.com/v1/ticker/?convert=BRL&limit=15&token='+Math.random(), function(data) {
+				$.getJSON('https://api.coinmarketcap.com/v1/ticker/?convert='+localcoin+'&limit=15&token='+Math.random(), function(data) {
 					window.jsondata = data;
+
+					config.data.labels.push(new Date().getHours()+":"+new Date().getMinutes().padLeft(2));
+					
+					coins.forEach(function(c) {
+						$(window.jsondata).each(function(key, value) {
+							if(value.symbol==c) {
+								config.data.datasets.forEach(function(dataset) {
+									if(dataset.label==value.symbol) {
+										dataset.data.push(value.price_usd);
+										window.myLine.update();
+									}
+								});
+							}
+						});
+					});
+
 				});
 			};
 			updateData();
-			setInterval(updateData, 1000*60);
-			var coins = ['BTC', 'ETH', 'DASH', 'XMR'];
+			setInterval(updateData, 1000*60*5);
 			
 			window.myLine.update();
 			
@@ -164,7 +193,7 @@
 				if(current>maxcoins) current = 0;
 				else current++;
 				var now_coin = coins[current];
-				
+
 				// search and gather
 				if(window.jsondata.length) {
 					$(window.jsondata).each(function(key, value) {
@@ -175,12 +204,6 @@
 							$("#c1h").text(value.percent_change_1h);
 							$("#c24h").text(value.percent_change_24h);
 							$("#c7d").text(value.percent_change_7d);
-							config.data.datasets.forEach(function(dataset) {
-								if(dataset.label==now_coin) {
-									dataset.data.push(value.price_usd);
-									window.myLine.update();
-								}
-							});
 						}
 					});
 				}
